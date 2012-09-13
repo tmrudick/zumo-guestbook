@@ -1,9 +1,70 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Hello, World!</title>
+		<title>My Guestbook</title>
+		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/knockout/2.1.0/knockout-min.js"></script>
 	</head>
 	<body>
-		<h1>Hello, World!</h1>
+		<h1>My Guestbook</h1>
+		
+		<ul data-bind="foreach: guests, visible: guests().length > 0">
+			<li class="message">
+				<p class="text" data-bind="text: message"></p>
+				<p class="meta">Posted by <span class="name" data-bind="text: name">.</p>
+			</li>
+		</ul>
+		
+		<form data-bind="submit: addGuest">
+			Name: <input data-bind="value: nameText" />
+			Message: <input data-bind="value: messageText" />
+			<button type="submit">Sign Guestbook</button>
+		</form>
+		
+		<script type="text/javascript">
+			function Guest(data) {
+				this.name = data.name;
+				this.message = data.message;
+			}
+		
+			function GuestBookViewModel() {
+				var self = this;
+				
+				// Existing guests
+				this.guests = ko.observableArray([]);
+				
+				// New Guest fields
+				this.nameText = ko.observable();
+				this.messageText = ko.observable();
+				
+				this.addGuest = function() {
+					var guest = new Guest({
+						name: self.nameText(),
+						message: self.messageText()
+					});
+					
+					$.ajax("/zumo/tables/guests", {
+						data: ko.toJSON(guest),
+						type: 'post', 
+						contentType: 'application/json',
+						headers: {
+							"x-zumo-application": "hIkUCwGbKmxJjjSdcROBmIBokruHxs54"
+						},
+						success: function() {
+							self.guests.push(guest);
+							self.nameText("");
+							self.messageText("");
+						}
+					});
+				}
+				
+				$.getJSON("/zumo/tables/guests", function(data) {
+					var wrappedGuests = $.map(data, function(guest) { return new Guest(guest); });
+					self.guests(wrappedGuests);
+				});
+			}
+			
+			ko.applyBindings(new GuestBookViewModel());
+		</script>
 	</body>
 </html>
